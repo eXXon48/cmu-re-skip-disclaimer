@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "name": "cmu-re-skip-disclaimer",
+  "version": "0.0.0",
+  "author": "CMU-Revised",
+  "targetCMU": "74.00.324A",
+  "category": "System mods",
+  "description": "Answers the start-up safety disclaimer at once, so it is never painted and the Home screen comes sooner. Uninstall and restart to get the stock behaviour back.",
+  "minDaemon": "0.1.0",
+  "depends": "cmu-re-store (>= 0.13.4)",
+  "conflicts": "",
+  "restart": true,
+  "files": [
+    {
+      "live": "/jci/gui/apps/system/js/systemApp.js",
+      "payload": "payload/systemApp.diff",
+      "mode": "0755",
+      "owner": "1000:1000",
+      "type": "modify",
+      "apply": "3way",
+      "reason": "answers the disclaimer at once and never paints it"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+--- a/systemApp.js
++++ b/systemApp.js
+@@ -334,6 +334,7 @@ systemApp.prototype.appInit = function()
+                     text1Id : 'DisclaimerText',     
+                 }
+             },
++            "readyFunction" : function () { this._currentContextTemplate.divElt.style.visibility = "hidden"; }.bind(this), // cmu-re: never paint the disclaimer
+             "displayedFunction" : this._displayedDisclaimer.bind(this),
+             "noLongerDisplayedFunction" : this._noLongerDisplayedDisclaimer.bind(this),
+             "contextOutFunction": this._displayedDisclaimerOut.bind(this),
+@@ -2476,6 +2477,7 @@ systemApp.prototype._displayOffUserActivity = function(controlRef, appData, para
+ systemApp.prototype._displayedDisclaimer = function()
+ {
+     framework.sendEventToMmui("system", "DisposeIntroVideo");
++    framework.sendEventToMmui(this.uiaId, "Timeout"); return; // cmu-re: skip the disclaimer timer
+ 
+     if (this._disclaimerTime.reset)
+     {

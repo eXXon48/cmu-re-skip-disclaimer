@@ -1,0 +1,76 @@
+name: build
+
+on:
+  push:
+    branches: [ main, develop ]
+    # v* = prod release (on main); dev/v* = dev prerelease (on develop)
+    tags: [ 'v*', 'dev/v*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Manifest and payload checks
+        run: sh test/run.sh
+
+  release:
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/dev/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RVP_STORE_REV: f33c3c28938778ad7cd8cab976c0072524976254   # store develop: rvp-pack with config + meta packages
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # branch heads for the tag-on-branch check
+
+      - name: Tag sits on its branch
+        run: |
+          case "$GITHUB_REF_NAME" in
+            dev/v*) branch=develop; ver=${GITHUB_REF_NAME#dev/v} ;;
+            *)      branch=main;    ver=${GITHUB_REF_NAME#v} ;;
+          esac
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch"; then
+            echo "::error::tag $GITHUB_REF_NAME is not on $branch"
+            exit 1
+          fi
+          echo "VER=$ver" >> "$GITHUB_ENV"
+
+      - name: Checkout store (rvp-pack source)
+        uses: actions/checkout@v4
+        with:
+          repository: eXXon48/cmu-re-store
+          ref: ${{ env.RVP_STORE_REV }}
+          token: ${{ secrets.STORE_READ_TOKEN }}
+          path: store
+          persist-credentials: false
+
+      - name: Build rvp-pack
+        working-directory: store
+        run: |
+          rustup toolchain install
+          cargo build --release --offline --bin rvp-pack
+
+      - name: Pack Revised Store package
+        run: |
+          sh tools/mkpkg.sh "$VER" store/target/release/rvp-pack "cmu-re-skip-disclaimer-$VER.rvp"
+          sha256sum "cmu-re-skip-disclaimer-$VER.rvp" | tee "cmu-re-skip-disclaimer-$VER.rvp.sha256"
+
+      - name: Attach package to release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ startsWith(github.ref, 'refs/tags/dev/v') }}
+          files: |
+            cmu-re-skip-disclaimer-${{ env.VER }}.rvp
+            cmu-re-skip-disclaimer-${{ env.VER }}.rvp.sha256
