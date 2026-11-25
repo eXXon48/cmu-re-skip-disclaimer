@@ -14,7 +14,7 @@
     {
       "live": "/jci/gui/apps/system/js/systemApp.js",
       "payload": "payload/systemApp.diff",
-      "mode": "0755",
+      "mode": "0775",
       "owner": "1000:1000",
       "type": "modify",
       "apply": "3way",
